@@ -14,6 +14,7 @@ module Data.Bin.DivMod where
 
  open Data.Bin using (Bin; toℕ; fromℕ; toBits; fromBits; _1#; 0#)
  module PropEq = Relation.Binary.PropositionalEquality
+ open PropEq.Deprecated-inspect
 
 
  open Data.List using (_∷_; []; List)
@@ -30,7 +31,7 @@ module Data.Bin.DivMod where
   open import Data.Bin.Multiplication
   open Data.Bin using () renaming (_+_ to _B+_; _*_ to _B*_)
   open Algebra.Structures using (IsCommutativeMonoid; module IsCommutativeSemiring)
-  open PropEq
+  open PropEq hiding(inspect)
   open Data.Nat using (_+_; _*_)
   open Data.Nat.Properties using (isCommutativeSemiring)
   open IsCommutativeSemiring isCommutativeSemiring
@@ -43,7 +44,7 @@ module Data.Bin.DivMod where
   open import Function
   open Data.Product
   open import Relation.Binary
-  open Relation.Binary.PropositionalEquality renaming (setoid to ≡-setoid)
+  open Relation.Binary.PropositionalEquality hiding (inspect) renaming (setoid to ≡-setoid)
   open import Relation.Nullary
   open import Relation.Nullary.Decidable
   open Data.Fin using (zero; suc)

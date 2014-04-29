@@ -1,3 +1,4 @@
+{-# OPTIONS --termination-depth=10 #-}
 module Data.Bin.BitListBijection where
 
   open import Data.List
@@ -30,6 +31,7 @@ module Data.Bin.BitListBijection where
   ₀ = Level.zero
 
   open PropEq using (_≡_)
+  open PropEq.Deprecated-inspect
 
   
   replicate-side-irrelevant : ∀ {A : Set} n (x : A) → replicate n x ++ [ x ] ≡ x ∷ replicate n x
@@ -111,7 +113,7 @@ module Data.Bin.BitListBijection where
   removeZeroesˡ : ∀ l₀ l₁ a → l₀ ++ 0× a ≡ l₁ → l₀ ≈ l₁
   removeZeroesˡ l₀ l₁ a eq = PropEq.subst (λ x → l₀ ≈ x) eq (equivʳ a l₀)
 
-  open PropEq using (Inspect; inspect; _with-≡_)
+  open PropEq using ()
 
   open import Data.Nat using (_+_)
 
@@ -188,7 +190,7 @@ module Data.Bin.BitListBijection where
 
   open import Function using (_∘_; _⟨_⟩_)
   fromℕ : ℕ → List Bit
-  fromℕ = theDigits 2
+  fromℕ = proj₁ ∘ toDigits 2
 
   ℕ-setoid = PropEq.setoid ℕ
 
@@ -218,7 +220,7 @@ module Data.Bin.BitListBijection where
 
   fromℕ-inj : ∀ {x y} → fromℕ x ≈ fromℕ y → x ≡ y
   fromℕ-inj {x} {y} eq with toDigits 2 x | toDigits 2 y
-  fromℕ-inj .{_} .{_} eq | digits xDig | digits yDig = toℕ-cong eq
+  fromℕ-inj .{_} .{_} eq | xDig , PropEq.refl | yDig , PropEq.refl = toℕ-cong eq
 
   open import Data.Nat.DivMod
 
@@ -372,19 +374,22 @@ module Data.Bin.BitListBijection where
   smaller-toℕ-inj {h} {t} rec eq with digit-inj zero h 0 (fromDigits t) eq
   ... | 0≡h , []≡ft = []-∷-cong 0≡h (rec []≡ft)
 
+  toℕ-inj-[] : ∀ {y} → toℕ [] ≡ toℕ y → [] ≈ y
+  toℕ-inj-[] {h ∷ t} eq with toℕ-inj-[] {t}
+  ... | rec = smaller-toℕ-inj rec eq
+  toℕ-inj-[] {[]} eq = equiv 0 0 []
+
   toℕ-inj : ∀ {x y} → toℕ x ≡ toℕ y → x ≈ y
+  toℕ-inj {[]} {y} eq = toℕ-inj-[] {y} eq
+  toℕ-inj {h ∷ t} {[]} eq with toℕ-inj-[] {t}
+  ... | rec = ≈-sym (smaller-toℕ-inj rec (PropEq.sym eq))
   toℕ-inj {h₁ ∷ t₁} {h₂ ∷ t₂} eq with toℕ-inj {t₁} {t₂}
   ... | rec with digit-inj h₁ h₂ (fromDigits t₁) (fromDigits t₂) eq 
   ... | h₁≡h₂ , t₁≡t₂ = ∷-cong h₁≡h₂ (rec t₁≡t₂)
-  toℕ-inj {[]} {h ∷ t} eq with toℕ-inj {[]} {t}
-  ... | rec = smaller-toℕ-inj rec eq
-  toℕ-inj {h ∷ t} {[]} eq with toℕ-inj {[]} {t}
-  ... | rec = ≈-sym (smaller-toℕ-inj rec (PropEq.sym eq))
-  toℕ-inj {[]} {[]} eq = equiv 0 0 []
 
   toFromℕ-inverse : ∀ x → toℕ (fromℕ x) ≡ x
   toFromℕ-inverse x with (toDigits 2 x)
-  toFromℕ-inverse .(fromDigits dig) | digits dig = PropEq.refl
+  toFromℕ-inverse .(fromDigits dig) | dig , PropEq.refl = PropEq.refl
 
   bijective : Bijective toℕ⟶
   bijective = record

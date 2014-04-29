@@ -21,7 +21,8 @@ module Data.Bin.Multiplication where
 
 
 
-  open PropEq using (_≡_; Inspect; inspect; _with-≡_; cong; cong₂; trans; sym)
+  open PropEq using (_≡_; cong; cong₂; trans; sym)
+  open PropEq.Deprecated-inspect
   open import Data.Bin using (_*2; toℕ; 0#; _1#; Bin; pred; _*_; _+_)
   open import Data.Nat using (ℕ; zero; suc)
                      renaming (_*_ to _ℕ*_; _+_ to _ℕ+_)

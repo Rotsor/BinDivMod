@@ -1,5 +1,5 @@
 {-# OPTIONS  --no-termination-check #-}
-module DivModTests where
+module Data.Bin.DivModTests where
 
 open import Data.Bin.DivMod
 open Everything using (BinFin; _divMod_; result)

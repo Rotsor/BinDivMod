@@ -32,4 +32,4 @@ wf x = go' x where
 open All wf
 
 rec : ∀ (P : Bin → Set) → ((a : Bin) → ((a' : Bin) → (a' < a) → P a') → P a) → (a : Bin) → P a
-rec P f = wfRec P f
+rec P f = wfRec _ P f

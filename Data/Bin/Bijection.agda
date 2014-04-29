@@ -1,23 +1,25 @@
 module Data.Bin.Bijection where
 
-  open import Relation.Binary.PropositionalEquality as PropEq
+  open import Relation.Binary.PropositionalEquality as PropEq hiding (inspect)
+  open PropEq.Deprecated-inspect
   open import Function.Bijection renaming (_∘_ to _∙_)
   import Function.Surjection
   open Function.Surjection using (module Surjection; module Surjective)
   open import Function.Equality using (_⟶_)
   open import Data.Nat using (ℕ; _*_; _+_)
   open import Data.Bin using (fromℕ; toℕ; Bin; fromBits)
-  open import Data.Digit using (toDigits; fromDigits; theDigits; digits)
+  open import Data.Product
+  open import Data.Digit using (toDigits; fromDigits)
 
   ℕ-setoid = PropEq.setoid ℕ
   Bin-setoid = PropEq.setoid Bin
 
   fromℕ' : ℕ → Bin
-  fromℕ' x = fromBits (theDigits 2 x)
+  fromℕ' x = fromBits (proj₁ (toDigits 2 x))
 
   fromℕeq' : {n : ℕ} → fromℕ n ≡ fromℕ' n
   fromℕeq' {x} with toDigits 2 x
-  fromℕeq' .{fromDigits d} | digits d = refl
+  fromℕeq' .{fromDigits d} | d , refl = refl
 
   fromℕ⟶ : ℕ-setoid ⟶ Bin-setoid
   fromℕ⟶ = record
@@ -47,7 +49,7 @@ module Data.Bin.Bijection where
 
   fromℕ-inj : ∀ {x y} → fromℕ x ≡ fromℕ y → x ≡ y
   fromℕ-inj {x} {y} eq with toDigits 2 x | toDigits 2 y
-  fromℕ-inj {._} {._} eq | digits xDig | digits yDig = 
+  fromℕ-inj {._} {._} eq | xDig , refl | yDig , refl = 
       PropEq.trans
           (PropEq.sym (fromBits-preserves-ℕ xDig))
        (PropEq.trans
@@ -80,12 +82,13 @@ module Data.Bin.Bijection where
 
   open import Function using (_∘_)
 
+  fromBitsCong-[] : ∀ {i} → i ≈ [] → fromBits i ≡ fromBits []
+  fromBitsCong-[] {[]} = λ _ → refl
+  fromBitsCong-[] {x ∷ xs} = fbc1 (fromBitsCong-[] {xs})
+
   fromBitsCong : ∀ {i j} → i ≈ j → fromBits i ≡ fromBits j
-  fromBitsCong {suc (suc ()) ∷ _} {_}
-  fromBitsCong {_} {suc (suc ()) ∷ _}
-  fromBitsCong {[]} {[]} = λ _ → refl
-  fromBitsCong {x ∷ xs} {[]} = fbc1 (fromBitsCong {xs} {[]})
-  fromBitsCong {[]} {y ∷ ys} = sym ∘ fbc1 (fromBitsCong {ys} {[]}) ∘ ≈-sym
+  fromBitsCong {x} {[]} = fromBitsCong-[] {x}
+  fromBitsCong {[]} {y ∷ ys} = sym ∘ fbc1 (fromBitsCong-[] {ys}) ∘ ≈-sym
   fromBitsCong {x ∷ xs} {y ∷ ys} = fbc2 {x} {y} {xs} {ys} (fromBitsCong {xs} {ys})
 
   fromBits⟶ : bits-setoid ⟶ Bin-setoid
@@ -146,11 +149,14 @@ module Data.Bin.Bijection where
   ... | x≡y , fbxs≡fbys with rec fbxs≡fbys
   ... | xs≈ys = ∷-cong x≡y xs≈ys
 
+  fromBits-inj-[] : ∀ {x} → fromBits x ≡ fromBits [] → x ≈ []
+  fromBits-inj-[] {x ∷ xs} = fbi1 (fromBits-inj-[] {xs})
+  fromBits-inj-[] {[]} = λ _ → Data.Bin.BitListBijection.equiv Data.Nat.zero Data.Nat.zero []
+
   fromBits-inj : ∀ {x y} → fromBits x ≡ fromBits y → x ≈ y
   fromBits-inj {x ∷ xs} {y ∷ ys} = fbi2 (fromBits-inj {xs} {ys})
-  fromBits-inj {x ∷ xs} {[]} = fbi1 (fromBits-inj {xs} {[]})
-  fromBits-inj {[]} {y ∷ ys} = ≈-sym ∘ fbi1 (fromBits-inj {ys} {[]}) ∘ sym
-  fromBits-inj {[]} {[]} = λ _ → Data.Bin.BitListBijection.equiv Data.Nat.zero Data.Nat.zero []
+  fromBits-inj {[]} {y ∷ ys} = ≈-sym ∘ fbi1 (fromBits-inj-[] {ys}) ∘ sym
+  fromBits-inj {xs} {[]} = fromBits-inj-[]
 
   #1-inj : ∀ {a b} → a 1# ≡ b 1# → a ≡ b
   #1-inj refl = refl
@@ -197,7 +203,7 @@ module Data.Bin.Bijection where
   toℕ-inj {x} {y} eq = Surjection.injective (Bijection.surjection BL-bijection-Bin) (Bijective.injective (Bijection.bijective BL-bijection-ℕ) eq)
 
   fromToℕ-inverse : ∀ x → fromℕ (toℕ x) ≡ x
-  fromToℕ-inverse x rewrite fromℕeq' {toℕ x} = kojo where
+  fromToℕ-inverse x = trans (fromℕeq' {toℕ x}) kojo where
     kojo : fromℕ' (toℕ x) ≡ x
     kojo = Bijective.right-inverse-of (Bijection.bijective megaBijection) x
 
