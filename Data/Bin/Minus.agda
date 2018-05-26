@@ -1,6 +1,7 @@
 module Data.Bin.Minus where
 
-  open import Data.Bin hiding (suc)
+  open import Data.Bin hiding (suc; fromℕ)
+  open import Data.Bin.Bijection using (fromℕ)
   open import Data.Fin hiding (_-_; _+_; toℕ; _<_; fromℕ)
   open import Data.List
   open import Data.Digit

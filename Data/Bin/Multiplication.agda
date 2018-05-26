@@ -21,8 +21,7 @@ module Data.Bin.Multiplication where
 
 
 
-  open PropEq using (_≡_; cong; cong₂; trans; sym)
-  open PropEq.Deprecated-inspect
+  open PropEq using (_≡_; cong; cong₂; trans; sym; [_]; inspect)
   open import Data.Bin using (_*2; toℕ; 0#; _1#; Bin; pred; _*_; _+_)
   open import Data.Nat using (ℕ; zero; suc)
                      renaming (_*_ to _ℕ*_; _+_ to _ℕ+_)
@@ -87,18 +86,18 @@ module Data.Bin.Multiplication where
 
   1+*n≡0→n≡0 : ∀ {l} n → l 1# * n ≡ 0# → n ≡ 0#
   1+*n≡0→n≡0 {[]} n eq = eq
-  1+*n≡0→n≡0 {h ∷ t} n eq with inspect (t 1# * n)
-  1+*n≡0→n≡0 {h ∷ t} n _ | 0# with-≡ eq = 1+*n≡0→n≡0 {t} n eq
-  1+*n≡0→n≡0 {zero ∷ t} n eq | (l 1#) with-≡ eq2 rewrite eq2 with eq
+  1+*n≡0→n≡0 {h ∷ t} n eq with t 1# * n | PropEq.inspect (λ n → (t 1# * n)) n
+  1+*n≡0→n≡0 {h ∷ t} n _ | 0# | [ eq ] = 1+*n≡0→n≡0 {t} n eq
+  1+*n≡0→n≡0 {zero ∷ t} n eq | (l 1#) | [ eq2 ] rewrite eq2 with eq
   ... | ()
-  1+*n≡0→n≡0 {suc zero ∷ t} n eq | (l 1#) with-≡ eq2 rewrite eq2 = n+x≡0→n≡0 {n} {(zero ∷ l) 1#} eq
-  1+*n≡0→n≡0 {suc (suc ()) ∷ t} n eq | _
+  1+*n≡0→n≡0 {suc zero ∷ t} n eq | (l 1#) | [ eq2 ] rewrite eq2 = n+x≡0→n≡0 {n} {(zero ∷ l) 1#} eq
+  1+*n≡0→n≡0 {suc (suc ()) ∷ t} n eq | _ | _
 
   simplify-mult : ∀ x xs n → (x ∷ xs) 1# * n ≡ multBit x n + (xs 1# * n) *2
-  simplify-mult x xs n with inspect (xs 1# * n)
-  simplify-mult zero xs n | 0# with-≡ ≡ rewrite ≡ = PropEq.refl
-  simplify-mult (suc zero) xs n | 0# with-≡ ≡ rewrite ≡ | 1+*n≡0→n≡0 {xs} n ≡ = PropEq.refl
-  simplify-mult zero xs n | (xs' 1#)  with-≡ ≡ rewrite ≡ =
+  simplify-mult x xs n with (xs 1# * n) | inspect (λ n → (xs 1# * n)) n
+  simplify-mult zero xs n | 0# | [ ≡ ] rewrite ≡ = PropEq.refl
+  simplify-mult (suc zero) xs n | 0# | [ ≡ ] rewrite ≡ | 1+*n≡0→n≡0 {xs} n ≡ = PropEq.refl
+  simplify-mult zero xs n | (xs' 1#)  | [ ≡ ] rewrite ≡ =
     begin
       (zero ∷ xs') 1#
         ≡⟨ PropEq.refl ⟩
@@ -108,13 +107,13 @@ module Data.Bin.Multiplication where
         ≡⟨ PropEq.refl ⟩
       multBit zero n + (xs' 1#) *2
     ∎
-  simplify-mult (suc zero) xs n | (xs' 1#)  with-≡ ≡ rewrite ≡ =
+  simplify-mult (suc zero) xs n | (xs' 1#)  | [ ≡ ] rewrite ≡ =
     begin
       n + (zero ∷ xs') 1#
         ≡⟨ PropEq.refl ⟩
       multBit (suc zero) n + (xs' 1#) *2
     ∎
-  simplify-mult (suc (suc ())) xs n | _
+  simplify-mult (suc (suc ())) xs n | _ | _
 
   _*-def'_ : ℕ → Bin → Bin
   zero *-def' y = 0#

@@ -1,9 +1,9 @@
 module Data.Bin.Rec where
 
-open import Data.Bin hiding (suc)
+open import Data.Bin hiding (suc; fromℕ)
 open import Induction.WellFounded
 
-open import Data.Nat using (ℕ; zero; suc) renaming (_<′_ to _ℕ<_)
+open import Data.Nat using (ℕ; zero; suc) renaming (_<_ to _ℕ<_)
 open import Data.Nat.Properties
 
 open import Relation.Binary.PropositionalEquality
@@ -20,7 +20,7 @@ wf x = go' x where
   podgon = subst (λ q → Acc _<_ q) (fromToℕ-inverse _)
 
   go'' : (x : ℕ) → ((y : ℕ) → y ℕ< x → P y) → P x
-  go'' x rec = acc (λ { y (less ty<tfx) → podgon (rec (toℕ y) (subst (λ q → toℕ y ℕ< q) (toFromℕ-inverse x) (≤⇒≤′ ty<tfx) ) )})
+  go'' x rec = acc (λ { y (less ty<tfx) → podgon (rec (toℕ y) (subst (λ q → toℕ y ℕ< q) (toFromℕ-inverse x) ty<tfx ) )})
 
   go : (x : ℕ) → P x
   go = Induction.Nat.<-rec P go''

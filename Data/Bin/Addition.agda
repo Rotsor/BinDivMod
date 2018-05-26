@@ -6,7 +6,7 @@ module Data.Bin.Addition where
   private
     module PropEq = Relation.Binary.PropositionalEquality
   open import Data.Fin using (zero; suc) renaming (toℕ to bitToℕ; _+_ to _+F_)
-  open import Data.Fin.Props using (_+′_)
+  open import Data.Fin.Properties using (_+′_)
   open import Data.Digit using (fromDigits)
   open import Data.Product
   import Data.Nat.Properties

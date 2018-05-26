@@ -12,9 +12,8 @@ module Data.Bin.DivMod where
  import Data.Bin.NatHelpers
  
 
- open Data.Bin using (Bin; toℕ; fromℕ; toBits; fromBits; _1#; 0#)
+ open Data.Bin using (Bin; toℕ; toBits; fromBits; _1#; 0#)
  module PropEq = Relation.Binary.PropositionalEquality
- open PropEq.Deprecated-inspect
 
 
  open Data.List using (_∷_; []; List)
@@ -25,32 +24,31 @@ module Data.Bin.DivMod where
 
  module Properties where
 
-  open import Data.Bin.Bijection using (bijection)
+  open import Data.Bin.Bijection using (bijection; fromℕ)
 
   open import Data.Bin.Addition
   open import Data.Bin.Multiplication
   open Data.Bin using () renaming (_+_ to _B+_; _*_ to _B*_)
   open Algebra.Structures using (IsCommutativeMonoid; module IsCommutativeSemiring)
-  open PropEq hiding(inspect)
+  open PropEq
   open Data.Nat using (_+_; _*_)
   open Data.Nat.Properties using (isCommutativeSemiring)
   open IsCommutativeSemiring isCommutativeSemiring
 
-
-
  module Everything where
 
-  open Data.Bin using (_1#; 0#; Bin; strictTotalOrder; _+_; _*2; _*2+1; fromℕ; toℕ; ⌊_/2⌋; _*_; less)
+  open Data.Bin using (_1#; 0#; Bin; _+_; _*2; _*2+1; fromℕ; toℕ; ⌊_/2⌋; _*_; less)
+  open import Data.Bin.Properties using (<-strictTotalOrder)
   open import Function
   open Data.Product
   open import Relation.Binary
-  open Relation.Binary.PropositionalEquality hiding (inspect) renaming (setoid to ≡-setoid)
+  open Relation.Binary.PropositionalEquality renaming (setoid to ≡-setoid)
   open import Relation.Nullary
   open import Relation.Nullary.Decidable
   open Data.Fin using (zero; suc)
   open Data.List using (_∷_; [])
 
-  open StrictTotalOrder strictTotalOrder hiding (trans)
+  open StrictTotalOrder <-strictTotalOrder hiding (trans)
 
   open import Data.Bin.Minus using (_-_)
 
@@ -189,10 +187,10 @@ module Data.Bin.DivMod where
 
 
   z<nz : ∀ l → 0# < l 1#
-  z<nz l with inspect (toℕ (l 1#))
-  ... | zero with-≡ ≡ with Data.Bin.Bijection.toℕ-inj {l 1#} {0#} ≡
+  z<nz l with (toℕ (l 1#)) | inspect toℕ (l 1#)
+  ... | zero | [ ≡ ] with Data.Bin.Bijection.toℕ-inj {l 1#} {0#} ≡
   ... | ()
-  z<nz l | suc n with-≡ eq = Data.Bin.less (subst (λ x → Data.Nat._≤_ 1 x) (sym eq) (Data.Nat.s≤s Data.Nat.z≤n))
+  z<nz l | suc n | [ eq ] = Data.Bin.less (subst (λ x → Data.Nat._≤_ 1 x) (sym eq) (Data.Nat.s≤s Data.Nat.z≤n))
 
   1+≢0 : ∀ l → toℕ (l 1#) ≢ 0
   1+≢0 l eq with Data.Bin.Bijection.toℕ-inj {l 1#} {0#} eq
@@ -268,8 +266,8 @@ module Data.Bin.DivMod where
   dmRec d {≢0} a rec with a <? d
   ... | yes a<d = result (0#) (a , a<d) (sym (+-identityʳ _))
   ... | no ¬a<d with rec ⌊ a /2⌋ (helper ≢0 ¬a<d)
-  ... | (result q (r' , r'<d) a/2≡r'+q*d) with inspect ((r' *2) + a %2)
-  ... | r with-≡ r-definition with r <? d | irr a≡r+q*2*d where
+  ... | (result q (r' , r'<d) a/2≡r'+q*d) with ((r' *2) + a %2) | inspect (λ a → ((r' *2) + a %2)) a
+  ... | r | [ r-definition ] with r <? d | irr a≡r+q*2*d where
      open ≡-Reasoning
      a≡r+q*2*d : a ≡ r + q *2 * d
      a≡r+q*2*d = 

@@ -1,25 +1,25 @@
 module Data.Bin.Bijection where
 
   open import Relation.Binary.PropositionalEquality as PropEq hiding (inspect)
-  open PropEq.Deprecated-inspect
   open import Function.Bijection renaming (_∘_ to _∙_)
   import Function.Surjection
   open Function.Surjection using (module Surjection; module Surjective)
   open import Function.Equality using (_⟶_)
   open import Data.Nat using (ℕ; _*_; _+_)
-  open import Data.Bin using (fromℕ; toℕ; Bin; fromBits)
+  open import Data.Bin using (toℕ; Bin; fromBits)
   open import Data.Product
   open import Data.Digit using (toDigits; fromDigits)
 
   ℕ-setoid = PropEq.setoid ℕ
   Bin-setoid = PropEq.setoid Bin
 
-  fromℕ' : ℕ → Bin
-  fromℕ' x = fromBits (proj₁ (toDigits 2 x))
+  fromℕ : ℕ → Bin
+  fromℕ x = fromBits (proj₁ (toDigits 2 x))
 
-  fromℕeq' : {n : ℕ} → fromℕ n ≡ fromℕ' n
-  fromℕeq' {x} with toDigits 2 x
-  fromℕeq' .{fromDigits d} | d , refl = refl
+-- hard to prove now
+--  fromℕeq' : {n : ℕ} → fromℕ n ≡ fromℕ' n
+--  fromℕeq' {x} with toDigits 2 x
+--  fromℕeq' .{fromDigits d} | d , refl = {!!}
 
   fromℕ⟶ : ℕ-setoid ⟶ Bin-setoid
   fromℕ⟶ = record
@@ -132,16 +132,18 @@ module Data.Bin.Bijection where
   ... | x≡0 , xs≡0# = ≈-sym ([]-∷-cong (sym x≡0) (≈-sym (rec xs≡0#)))
 
   fbi-∷-inj : ∀ {x xs y ys} → fromBits (x ∷ xs) ≡ fromBits (y ∷ ys) → x ≡ y × fromBits xs ≡ fromBits ys
-  fbi-∷-inj {x} {xs} {y} {ys} with inspect (fromBits xs) | inspect (fromBits ys)
-  fbi-∷-inj {zero} {xs} {y} {ys} | 0# with-≡ fbxs≡ | _ rewrite fbxs≡ = λ eq → map sym sym (fbi-∷-0#-inj {y} {ys} (sym eq)) where open Data.Product
-  fbi-∷-inj {x} {xs} {zero} {ys} | _ | 0# with-≡ fbys≡ rewrite fbys≡ = fbi-∷-0#-inj {x} {xs}
-  fbi-∷-inj {suc zero} {xs} {y} {ys} | 0# with-≡ fbxs≡ | _ rewrite fbxs≡ = map sym sym ∘ fbi-∷-[]1#-inj {y} {ys} ∘ sym where open Data.Product
-  fbi-∷-inj {x} {xs} {suc zero} {ys} | _ | 0# with-≡ fbys≡ rewrite fbys≡ = fbi-∷-[]1#-inj {x} {xs}
-  fbi-∷-inj {x} {xs} {y} {ys} | (lx 1#) with-≡ fbxs≡ | (ly 1#) with-≡ fbys≡ rewrite fbxs≡ | fbys≡ = helper where
+  fbi-∷-inj {x} {xs} {y} {ys} with fromBits xs | PropEq.inspect fromBits xs | fromBits ys | PropEq.inspect fromBits ys
+  fbi-∷-inj {zero} {xs} {y} {ys}       | 0#     | record { eq = fbxs≡ } | _       | record { eq = refl } rewrite fbxs≡ =
+    λ eq →  map sym sym (fbi-∷-0#-inj {y} {ys} (sym eq))
+    where open Data.Product
+  fbi-∷-inj {x} {xs} {zero} {ys}       | _      | record { eq = fbxs≡ } | 0#     | record { eq = fbys≡ } rewrite sym fbxs≡ | fbys≡ = fbi-∷-0#-inj {x} {xs}
+  fbi-∷-inj {suc zero} {xs} {y} {ys}   | 0#     | record { eq = fbxs≡ } | _       | record { eq = refl } rewrite fbxs≡ = map sym sym ∘ fbi-∷-[]1#-inj {y} {ys} ∘ sym where open Data.Product
+  fbi-∷-inj {x} {xs} {suc zero} {ys}   | _      | record { eq = fbxs≡ } | 0#      | record { eq = fbys≡ } rewrite fbys≡ | sym fbxs≡ = fbi-∷-[]1#-inj {x} {xs}
+  fbi-∷-inj {x} {xs} {y} {ys}          | (lx 1#)| record { eq = fbxs≡ } | (ly 1#) | record { eq =  fbys≡ } rewrite fbxs≡ | fbys≡ = helper where
     helper : ∀ {x lx y ly} → (x ∷ lx) 1# ≡ (y ∷ ly) 1# → x ≡ y × lx 1# ≡ ly 1#
     helper refl = refl , refl
-  fbi-∷-inj {suc (suc ())} | _ | _
-  fbi-∷-inj {_} {_} {suc (suc ())} | _ | _
+  fbi-∷-inj {suc (suc ())} | _ | _ | _ | _
+  fbi-∷-inj {_} {_} {suc (suc ())} | _ | _ | _ | _
 
   fbi2 : ∀ {x xs y ys} → (fromBits xs ≡ fromBits ys → xs ≈ ys)
          → fromBits (x ∷ xs) ≡ fromBits (y ∷ ys) → x ∷ xs ≈ y ∷ ys
@@ -203,8 +205,8 @@ module Data.Bin.Bijection where
   toℕ-inj {x} {y} eq = Surjection.injective (Bijection.surjection BL-bijection-Bin) (Bijective.injective (Bijection.bijective BL-bijection-ℕ) eq)
 
   fromToℕ-inverse : ∀ x → fromℕ (toℕ x) ≡ x
-  fromToℕ-inverse x = trans (fromℕeq' {toℕ x}) kojo where
-    kojo : fromℕ' (toℕ x) ≡ x
+  fromToℕ-inverse x = kojo where
+    kojo : fromℕ (toℕ x) ≡ x
     kojo = Bijective.right-inverse-of (Bijection.bijective megaBijection) x
 
   toFromℕ-inverse : ∀ x → toℕ (fromℕ x) ≡ x

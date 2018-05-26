@@ -4,21 +4,27 @@ module Data.Bin.DivModTests where
 open import Data.Bin.DivMod
 open Everything using (BinFin; _divMod_; result)
 open import IO
-open import Data.Bin hiding (suc)
-open import Data.String
-open import Data.Unit
+open import Data.Bin hiding (suc; fromℕ)
+open import Data.String hiding (_≟_)
+open import Data.Unit hiding (_≟_)
 open import Coinduction
 open import Data.List
-open import Data.Char
+open import Data.Char hiding (_≟_)
 open import Data.Digit hiding (toDigits)
-open import Data.Fin hiding (_+_; fromℕ)
+open import Data.Fin hiding (_+_; fromℕ; _≟_)
+open import Data.Bin.Bijection using (fromℕ)
 
 showBits : Bin → String
 showBits x = fromList (Data.List.reverse (Data.List.map showDigit (toBits x)))
 
 open import Relation.Nullary.Decidable
+import Data.Bin.Properties
+-- eq =  Data.Bin.Properties._≟_
+open import Relation.Binary
+open import Data.Bin.Properties using (<-strictTotalOrder)
+open StrictTotalOrder <-strictTotalOrder using (_≟_)
 
-toDigits : (base : Bin) → {≢0 : False (Data.Bin._≟_ base (fromℕ 0))} → Bin → List (BinFin base)
+toDigits : (base : Bin) → {≢0 : False (base ≟ (fromℕ 0))} → Bin → List (BinFin base)
 toDigits _ 0# = []
 toDigits base {≢0} x with (x divMod base) {≢0}
 ... | result q r _ = r ∷ toDigits base {≢0} q -- still need to prove termination of this

@@ -31,7 +31,6 @@ module Data.Bin.BitListBijection where
   ₀ = Level.zero
 
   open PropEq using (_≡_)
-  open PropEq.Deprecated-inspect
 
   
   replicate-side-irrelevant : ∀ {A : Set} n (x : A) → replicate n x ++ [ x ] ≡ x ∷ replicate n x
@@ -81,10 +80,7 @@ module Data.Bin.BitListBijection where
   []-identityʳ : ∀ l → l ++ [] ≡ l
   []-identityʳ = proj₂ identity
    where
-    open Monoid (Data.List.monoid Bit) using (identity)
-
-  ++-assoc = assoc where
-    open Monoid (Data.List.monoid Bit) using (assoc)
+    open Monoid (Data.List.Properties.++-monoid Bit) using (identity)
 
   ≈-sym : Symmetric _≈_
   ≈-sym (equiv n m l) = equiv m n l
@@ -139,9 +135,9 @@ module Data.Bin.BitListBijection where
                    (equiv c (a + b) l)
 
   removeZeroesˡ'' : ∀ {l₀ l₁} a → 0× a ++ l₀ ≈ʳ l₁ → l₀ ≈ʳ l₁
-  removeZeroesˡ'' {l₀} {l₁} a eq with inspect (0× a ++ l₀)
-  removeZeroesˡ'' {l₀} {l₁} a eq | y with-≡ ≡ rewrite ≡ with eq
-  removeZeroesˡ'' {l₀} .{_} a eq | .(replicate b zero ++ l) with-≡ ≡ | equiv b c l with removeTooMuch a b ≡
+  removeZeroesˡ'' {l₀} {l₁} a eq with (0× a ++ l₀) | PropEq.inspect (λ z → 0× a ++ z) l₀
+  removeZeroesˡ'' {l₀} {l₁} a eq | y | record { eq = ≡ } rewrite ≡ with eq
+  removeZeroesˡ'' {l₀} .{_} a eq | .(replicate b zero ++ l)  | record { eq = ≡ } | equiv b c l with removeTooMuch a b ≡
   ... | inj₁ (b' , l₀≡b'++l) rewrite l₀≡b'++l = equiv b' c l
   ... | inj₂ (a' , a'++l₀≡l) rewrite PropEq.sym a'++l₀≡l  = trans+ c zero a' l₀
 
@@ -238,7 +234,8 @@ module Data.Bin.BitListBijection where
 
   module DigitInj where
     open import Relation.Binary using (StrictTotalOrder; module StrictTotalOrder)
-    open Data.Nat.≤-Reasoning
+    import Data.Nat.Properties
+    open Data.Nat.Properties.≤-Reasoning
     open Data.Nat using (_<_; _≤_; s≤s)
     open import Data.Nat.Properties using (isCommutativeSemiring)
     open import Algebra.Structures
@@ -313,14 +310,15 @@ module Data.Bin.BitListBijection where
                 → finToℕ h₁ + t₁ * base ≡ finToℕ h₂ + t₂ * base
                 → h₁ ≡ h₂ × t₁ ≡ t₂
     digit-inj₁'' {b} h₁ h₂ t₁ t₂ eq with (digit-inj₁' (finToℕ h₁) (finToℕ h₂) (fin<base h₁) (fin<base h₂) t₁ t₂ eq)
-    ... | h2n-eq = finToℕ-inj h2n-eq ,  t-eq where
-      bnz : ¬ b ≡ 0
-      bnz with b | h₁
+    ... | h2n-eq = finToℕ-inj h2n-eq ,  t-eq eq where
+      bnz : ∀ (b : ℕ) (h₁ : Fin b) → ¬ b ≡ 0
+      bnz b h₁ with b | h₁
       ... | 0 | ()
       ... | suc n | _ = λ ()
-      t-eq : t₁ ≡ t₂
-      t-eq with eq
-      ... | eqq rewrite h2n-eq =  *-inj₂ b bnz (+-inj₁ (finToℕ h₂) eqq)
+
+      t-eq : finToℕ h₁ + t₁ * b ≡ finToℕ h₂ + t₂ * b → t₁ ≡ t₂
+      t-eq eq with eq
+      ... | eqq rewrite h2n-eq =  *-inj₂ b (bnz b h₁) (+-inj₁ (finToℕ h₂) eqq)
 
 
   digit-inj : ∀ {base : ℕ} (h₁ h₂ : Fin base) (t₁ t₂ : ℕ)
@@ -402,3 +400,4 @@ module Data.Bin.BitListBijection where
 
   bijection-to-ℕ : Bijection setoid ℕ-setoid
   bijection-to-ℕ = record { bijective = bijective }
+

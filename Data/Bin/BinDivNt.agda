@@ -1,15 +1,16 @@
 {-# OPTIONS  --no-termination-check #-}
 
-module BinDivNt where
+module Data.Bin.BinDivNt where
 
   open import Data.Bin
+  open import Data.Bin.Properties
   open import Data.Product
   open import Relation.Binary
-  open StrictTotalOrder strictTotalOrder
+  open StrictTotalOrder <-strictTotalOrder
   
   open import Relation.Nullary
-  open import BinUtils
-  open import BinMinus
+  open import Data.Bin.Utils
+  open import Data.Bin.Minus
 
   _divMod-nt_ : Bin → Bin → (Bin × Bin)
   a divMod-nt b with a <? b
