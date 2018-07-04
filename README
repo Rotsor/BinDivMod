@@ -10,7 +10,7 @@ Data.Bin.Multiplication.*-is-multiplication : ∀ a b → toℕ (a * b) ≡ to�
 
 - The thing that ties it all up is:
 
-Data.Bin.DivMod._divMod_ : (a : Bin) → (d : Bin) → {≢0 : False (d ≟ fromℕ 0)} → DivMod' a d
+Data.Bin.DivMod.Everything._divMod_ : (a : Bin) → (d : Bin) → {≢0 : False (d ≟ fromℕ 0)} → DivMod' a d
 
 The time complexity of [divMod] when compiled via MAlonzo seems to be O(n*k) where n is the size of dividend and k the size of divisor.
 
