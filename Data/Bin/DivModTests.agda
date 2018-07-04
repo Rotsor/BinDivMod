@@ -54,4 +54,4 @@ test x = showDigits x
 go : Bin → IO ⊤
 go n = ♯ putStrLn (test n) >> ♯ go (n + (fromℕ 1))
 
-main = run (go (fromℕ 0))
+main = run (go (fromℕ 100 * fromℕ 100))

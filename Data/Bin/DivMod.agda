@@ -64,6 +64,16 @@ module Data.Bin.DivMod where
   data DivMod' (dividend : Bin) (divisor : Bin) : Set where
     result : (q : Bin) (r : BinFin divisor) → (eq : dividend ≡ toBin r + q * divisor) → DivMod' dividend divisor
 
+  record DivMod (dividend divisor : Bin) : Set where
+    constructor result
+    field
+      quotient  : Bin
+      remainder : BinFin divisor
+      property  : dividend ≡ toBin remainder + quotient * divisor
+
+  DivMod'-to-DivMod : ∀ {q d} → DivMod' q d → DivMod q d
+  DivMod'-to-DivMod (result q r eq) = DivMod.result q r eq
+
   ---- Basic arithmetic facts -------
   open Data.Digit
 
@@ -330,3 +340,10 @@ module Data.Bin.DivMod where
 
   _divMod_ : (a : Bin) → (d : Bin) → {≢0 : False (d ≟ fromℕ 0)} → DivMod' a d
   _divMod_ a d {≡0} = Data.Bin.Rec.rec (λ x → DivMod' x d) (dmRec d {≡0}) a
+
+  not-means-false : ∀ {A : Set} {q : Dec A} → ¬ A → False q
+  not-means-false {q = yes p} = λ x → x p
+  not-means-false {q = no ¬p} = λ x → record {}
+
+  divMod : (a : Bin) → (d : Bin) → ¬ (d ≡ fromℕ 0) → DivMod a d
+  divMod a d ≡0 = DivMod'-to-DivMod (_divMod_ a d {not-means-false ≡0})
