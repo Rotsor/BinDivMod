@@ -1,1 +1,17 @@
 # Binary arithmetic and its properties in Agda
+
+- Bijection between Nat and Bin is given by Data.Bin.Bijection.bijection.
+Before commit [8132dbdf8690dc0ea28bfafcf66dbdf6eaebb693] it used to be a proof that Data.Bin.{fromℕ; toℕ} form a bijection, but fromℕ changed in standard library and I did not want to write new proofs so I'm currently using the old fromℕ definition (Data.Bin.Bijection.fromℕ).
+
+- The relevant homomorphisms are given by:
+
+Data.Bin.Addition.+-is-addition : ∀ a b → toℕ (Data.Bin._+_ a b) ≡ toℕ a + toℕ b
+Data.Bin.Multiplication.*-is-multiplication : ∀ a b → toℕ (a * b) ≡ toℕ a ℕ* toℕ b
+
+- The thing that ties it all up is:
+
+Data.Bin.DivMod.Everything._divMod_ : (a : Bin) → (d : Bin) → {≢0 : False (d ≟ fromℕ 0)} → DivMod' a d
+
+The time complexity of [divMod] when compiled via MAlonzo seems to be O(n*k) where n is the size of dividend and k the size of divisor.
+
+This last compiled with Agda 2.5.4 RC2 and agda stdlib 0.16 pre-release.
