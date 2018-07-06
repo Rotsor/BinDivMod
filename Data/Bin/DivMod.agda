@@ -64,7 +64,6 @@ module Data.Bin.DivMod where
   data DivMod' (dividend : Bin) (divisor : Bin) : Set where
     result : (q : Bin) (r : BinFin divisor) → (eq : dividend ≡ toBin r + q * divisor) → DivMod' dividend divisor
 
-  ---- Basic arithmetic facts -------
   open Data.Digit
 
   open Data.Bin using (addBitLists; addBits; toBits; fromBits)
@@ -74,74 +73,6 @@ module Data.Bin.DivMod where
 
   open import Data.Bin.Bijection using (fromToBits-inverse)
 
-
-{-  module Redundant where
-    addBl-zeroˡ : ∀ {h t} → addBitLists 0b (0b ∷ []) (h ∷ t) ≡ (h ∷ t)
-    addBl-zeroˡ {zero} {t} = refl
-    addBl-zeroˡ {suc zero} {t} = refl
-    addBl-zeroˡ {suc (suc ())} {t}
-
-    ++[x]NonEmpty : ∀ {A : Set} {l : List A} {x} → l ++ [ x ] ≢ []
-    ++[x]NonEmpty {_} {[]} ()
-    ++[x]NonEmpty {_} {h ∷ t} ()
-
-    toBitsNonEmpty : ∀ {a} → toBits a ≢ []
-    toBitsNonEmpty {0#} = λ ()
-    toBitsNonEmpty {[] 1#} = λ ()
-    toBitsNonEmpty {l 1#} = ++[x]NonEmpty {_} {l} {suc zero}
-
-    +-zeroˡ : ∀ {a} → 0# + a ≡ a
-    +-zeroˡ {a} with inspect (toBits a)
-    ... | [] with-≡ l-def = ⊥-elim (toBitsNonEmpty {a} l-def) 
-    ... | (h ∷ t) with-≡ l-def = 
-        begin
-         fromBits (addBitLists 0b (0b ∷ []) (toBits a))
-          ≡⟨ cong (λ x → fromBits (addBitLists 0b (0b ∷ []) x)) l-def ⟩
-         fromBits (addBitLists 0b (0b ∷ []) (h ∷ t))
-          ≡⟨ cong fromBits (addBl-zeroˡ {h} {t})⟩
-         fromBits (h ∷ t)
-          ≡⟨ cong fromBits (sym l-def) ⟩
-         fromBits (toBits a)
-          ≡⟨ fromToBits-inverse a ⟩
-         a
-        ∎
-      where
-        open ≡-Reasoning
-     
-    addBits-comm : ∀ {c b₁ b₂} → addBits c b₁ b₂ ≡ addBits c b₂ b₁
-    addBits-comm {zero} {zero} {zero} = refl
-    addBits-comm {zero} {zero} {suc zero} = refl
-    addBits-comm {zero} {suc zero} {zero} = refl
-    addBits-comm {zero} {suc zero} {suc zero} = refl
-    addBits-comm {suc zero} {zero} {zero} = refl
-    addBits-comm {suc zero} {zero} {suc zero} = refl
-    addBits-comm {suc zero} {suc zero} {zero} = refl
-    addBits-comm {suc zero} {suc zero} {suc zero} = refl
-    addBits-comm {suc (suc ())}
-    addBits-comm {_} {suc (suc ())}
-    addBits-comm {_} {_} {suc (suc ())}
-    
-    addBitLists-comm : ∀ {c a b} → addBitLists c a b ≡ addBitLists c b a
-    addBitLists-comm {c} {[]} {(b ∷ bs)} = refl
-    addBitLists-comm {c} {(a ∷ as)} {[]} = refl
-    addBitLists-comm {c} {[]} {[]} = refl
-    addBitLists-comm {c} {a ∷ as} {b ∷ bs} with addBits c a b | addBits c b a | addBits-comm {c} {a} {b}
-    ... | (c' , b') | (.c' , .b') | refl with addBitLists-comm {c'} {as} {bs}
-    ... | eq = cong (λ l → b' ∷ l) eq
-
-    +-comm : ∀ {a b} → a + b ≡ b + a
-    +-comm {a} {b} = cong fromBits (addBitLists-comm {zero} {toBits a} {toBits b})
-
-    +-identityʳ : ∀ {a} → a + 0# ≡ a
-    +-identityʳ {a} = trans (+-comm {a} {0#}) (+-zeroˡ {a})
-
-    +-cong₂ : ∀ {a b c} → a ≡ b → c + a ≡ c + b
-    +-cong₂ {c = c} = cong
-                        (λ z →
-                           Data.Bin.fromBits
-                           (Data.Bin.addBitLists zero (Data.Bin.toBits c)
-                            (Data.Bin.toBits z)))
--}
   import Data.Bin.Multiplication
 
   open Algebra.Structures using (module IsCommutativeMonoid)

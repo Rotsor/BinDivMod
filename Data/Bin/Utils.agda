@@ -16,4 +16,3 @@ module Data.Bin.Utils where
   bitToBin zero = 0#
   bitToBin (suc zero) = [] 1#
   bitToBin (suc (suc ()))
-
