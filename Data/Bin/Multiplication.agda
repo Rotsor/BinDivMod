@@ -34,9 +34,6 @@ module Data.Bin.Multiplication where
 
   open import Data.Product
 
-  import Data.Bin.BitListBijection
-  open Data.Bin.BitListBijection.DigitInj using (*-inj₂)
-
   open import Relation.Nullary
   open import Data.Fin using (zero; suc) renaming (toℕ to bitToℕ)
   open import Data.Digit using (Bit)
