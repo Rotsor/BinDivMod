@@ -6,12 +6,15 @@ module Data.Bin.Bijection where
   open Function.Surjection using (module Surjection; module Surjective)
   open import Function.Equality using (_⟶_)
   open import Data.Nat using (ℕ; _*_; _+_)
-  open import Data.Bin using (toℕ; Bin; fromBits; 2+_)
+  open import Data.Bin using (toℕ; Bin; fromBits; 2+_; 0b; 1b)
   open import Data.Product
-  open import Data.Digit using (toDigits; fromDigits)
+  open import Data.Digit using (Bit; toDigits; fromDigits)
 
   ℕ-setoid = PropEq.setoid ℕ
   Bin-setoid = PropEq.setoid Bin
+
+  import Data.Fin
+  pattern 1+ x = Data.Nat.suc x
 
   fromℕ : ℕ → Bin
   fromℕ x = fromBits (proj₁ (toDigits 2 x))

@@ -1,6 +1,7 @@
 module Data.Bin.Minus where
 
   open import Data.Bin hiding (suc; fromℕ)
+  open Data.Bin using (2+_)
   open import Data.Bin.Bijection using (fromℕ)
   open import Data.Fin hiding (_-_; _+_; toℕ; _<_; fromℕ)
   open import Data.List
@@ -11,12 +12,16 @@ module Data.Bin.Minus where
   infixl 6 _-?_
   infixl 6 _-_
 
+  open import Function
+
   pred' : Bin → Bin
   pred' 0# = 0#
   pred' ([] 1#) = 0#
-  pred' ((zero ∷ t) 1#) with Data.Bin.pred t
-  ... | 0# = [] 1#
-  ... | t' 1# = (suc zero ∷ t') 1#
+  pred' ((zero ∷ t) 1#) = case Data.Bin.pred t of
+    λ {
+      0# → [] 1# ;
+      (t' 1#) → (suc zero ∷ t') 1#
+    }
   pred' ((suc zero ∷ t) 1#) = (zero ∷ t) 1#
   pred' ((suc (suc ()) ∷ _) 1#)
 
@@ -125,8 +130,6 @@ module Data.Bin.Minus where
 
   open import Data.Bin.Utils
 
-
-
   *2-1-lem : ∀ d → (d *2-1) 1# + [] 1# ≡ d 1# *2
   *2-1-lem [] = refl
   *2-1-lem (zero ∷ xs) = 
@@ -207,19 +210,25 @@ module Data.Bin.Minus where
       (x ∷ xs) 1#
      ∎
 
+  compare-bit : ∀ a b xs → Difference ((a ∷ xs) 1#) ((b ∷ xs) 1#)
+  compare-bit 0b 0b xs = equal refl
+  compare-bit 1b 0b xs = positive (greater [] (seems-trivial xs))
+  compare-bit 0b 1b xs = negative (greater [] (seems-trivial xs))
+  compare-bit 1b 1b xs = equal refl
+  compare-bit (2+ ()) _ xs
+  compare-bit _ (2+ ()) xs
+
   _-⁺_ : ∀ a b → Difference (a 1#) (b 1#)
   [] -⁺ [] = equal refl
   [] -⁺ (x ∷ xs) = negative (greater (∷-pred x xs) (1+∷-pred x xs))
   (x ∷ xs) -⁺ [] = positive (greater (∷-pred x xs) (1+∷-pred x xs))
-  (x ∷ xs) -⁺ (y ∷ ys) with xs -⁺ ys
-  ... | positive gt = positive (refineGt xs ys x y gt)
-  ... | negative lt = negative (refineGt ys xs y x lt)
-  (zero ∷ xs) -⁺ (zero ∷ .xs) | equal refl = equal refl
-  (zero ∷ xs) -⁺ (suc zero ∷ .xs) | equal refl = negative (greater [] (seems-trivial xs))
-  (suc zero ∷ xs) -⁺ (zero ∷ .xs) | equal refl = positive (greater [] (seems-trivial xs))
-  (_ ∷ xs) -⁺ (suc (suc ()) ∷ .xs) | equal refl
-  (suc (suc ()) ∷ xs) -⁺ (_ ∷ .xs) | equal refl
-  (suc zero ∷ xs) -⁺ (suc zero ∷ .xs) | equal refl = equal refl
+  (x ∷ xs) -⁺ (y ∷ ys) =
+    case xs -⁺ ys of
+      λ {
+        (positive gt) → positive (refineGt xs ys x y gt) ;
+        (negative lt) → negative (refineGt ys xs y x lt) ;
+        (equal refl) → compare-bit _ _ xs 
+     }
 
   _-?_ : ∀ a b → Difference a b
   0# -? 0# = equal refl
@@ -281,12 +290,13 @@ module Data.Bin.Minus where
   ... | equal z+x≡z = +-inj₂ z (identityʳ z ⟨ trans ⟩ sym z+x≡z)
   ... | negative (greater d z+x+d≡z) = sym (+zz x (d 1#) (+-inj₂ z
          ( sym (+-assoc z x (d 1#)) ⟨ trans ⟩ z+x+d≡z ⟨ trans ⟩ sym (identityʳ z))))
-
+  
   import Data.Bin.NatHelpers
 
   x≮z→x≡z+y : ∀ {x z} → ¬ x < z → ∃ λ y → x ≡ z + y
-  x≮z→x≡z+y x≮z with Data.Bin.NatHelpers.x≮z→x≡z+y (λ toℕ-leq → x≮z (less toℕ-leq))
-  x≮z→x≡z+y {x} {z} x≮z | y , eq = fromℕ y , toℕ-inj (
+  x≮z→x≡z+y {x} {z} x≮z = case
+    Data.Bin.NatHelpers.x≮z→x≡z+y (λ toℕ-leq → x≮z (less toℕ-leq))
+    of λ { (y , eq) →  fromℕ y , toℕ-inj (
     begin
      toℕ x
       ≡⟨ eq ⟩
@@ -295,15 +305,16 @@ module Data.Bin.Minus where
      toℕ z ℕ+ toℕ (fromℕ y)
       ≡⟨ sym (+-is-addition z (fromℕ y)) ⟩
      toℕ (z + fromℕ y)
-    ∎)
+    ∎) }
+    
 
   -+-elim' : ∀ {x z} → ¬ x < z → x - z + z ≡ x
-  -+-elim' x≮z with x≮z→x≡z+y x≮z
-  -+-elim' .{_} {z} _ | y , refl = 
+  -+-elim' {x} {z} x≮z = case x≮z→x≡z+y x≮z of
+    λ { (y , refl) →  
    begin
     z + y - z + z
      ≡⟨ cong (λ q → q + z) (minus-elim y z)⟩
     y + z
      ≡⟨ +-comm y z ⟩
     z + y
-   ∎
+   ∎ }
