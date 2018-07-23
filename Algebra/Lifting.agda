@@ -31,91 +31,14 @@ module Algebra.Lifting
   from-inj : ∀ {x y} → from ⟨$⟩ x ≈₁ from ⟨$⟩ y → x ≈₂ y
   from-inj {x} {y} eq = (sym (right-inverse-of x)) ⟨ trans ⟩ cong to eq ⟨ trans ⟩ (right-inverse-of y)
 
-
   open import Data.Nat
   open import Data.Fin
   level-₁ = level-suc ₀
-
-  data Explicitness : Set where
-    explicit implicit : Explicitness
-
-  mutual
-
-    data Context : Set ₀
-
-    data Context where
-      □ : Context
-      _▸_ : ∀ (t : Context) (x : Typ) → Context
-    data Typ : Set ₀
-    data Prop : (t : Context) → Set ₀
-
-    data Typ where -- type language
-      S : Typ
-      Arrow : Typ → Typ → Typ
-
-    data Prop where
-      Equiv : ∀ {t} → (x y : Term t S) → Prop t
-      Forall : ∀ {t} → Explicitness → (T : Typ) → (Prop (t ▸ T)) → Prop t
-
-    data Term : (t : Context) → Typ → Set ₀ where -- type language
-      Var : ∀ {t T} → Position t T → Term t T
-      Apply : ∀ {t} {Q R : Typ} → Term t (Arrow Q R) → Term t Q → Term t R
-
-    _▸'_ : ∀ (t : Context) (x : Typ) → Context
-    _▸'_ = _▸_
-    
-    weaken-term : ∀ {t X T} → Term t T → Term (t ▸' X) T
-
-    data Position : (t : Context) → (T : Typ) → Set ₀ where
-      here : ∀ t X → Position (t ▸ X) X
-      there : ∀ t x y → Position t x → Position (t ▸ y) x
-
-    there' : ∀ t x y → Position t x → Position (t ▸' y) x
-    there' = there
-    weaken-term (Var x) = Var (there _ _ _ x)
-    weaken-term (Apply f x) = Apply (weaken-term f) (weaken-term x)
-
-  open import Data.Product
-  open import Function using ()
-  _↔_ : ∀ (A B : Set ₀) → Set ₀
-  A ↔ B = (A → B) × (B → A)
-
-  Setoid-Interpretation : Setoid ₀ ₀ → Typ → Setoid ₀ ₀
-  Setoid-Interpretation V S = V
-  Setoid-Interpretation V (Arrow F X) =
-    Setoid-Interpretation V F ⇨ Setoid-Interpretation V X 
-
-  Type-Interpretation : Setoid ₀ ₀ → Typ → Set ₀
-  Type-Interpretation V x = Setoid.Carrier (Setoid-Interpretation V x)
-
-  data Env (V : Setoid ₀ ₀) : Context → Set ₀ where
-    □ : Env V □
-    _▸_ : ∀ {t X} → (env : Env V t) → Type-Interpretation V X → Env V (t ▸ X)
-
-  _▸-env_ : ∀ {V} → ∀ {t X} → (env : Env V t) → Type-Interpretation V X → Env V (t ▸ X)
-  _▸-env_ = _▸_
-
-  lookup-env : {V : Setoid ₀ ₀} → ∀ {t T} → (env : Env V t) → Position t T → Type-Interpretation V T
-  lookup-env (env ▸ x) (here _ _) = x 
-  lookup-env (env ▸ x) (there t _ _ pos) =
-     (lookup-env env pos) 
-
-  Term-Interpretation : ∀ {V t T} → (env : Env V t) → Term t T → Type-Interpretation V T
-  Term-Interpretation env (Var x) = lookup-env env x
-  Term-Interpretation env (Apply f x) = Term-Interpretation env f ⟨$⟩ (Term-Interpretation env x)
-
-  Prop-Interpretation : ∀ {V} → ∀ {t} → (env : Env V t) → Prop t → Set ₀
-  Prop-Interpretation {V} env (Equiv x y) = Setoid._≈_ V (Term-Interpretation env x) (Term-Interpretation env y)
-  Prop-Interpretation {V} env (Forall explicit T P) =
-    ∀ (x : Type-Interpretation V T) → Prop-Interpretation (env ▸ x) P
-  Prop-Interpretation {V} env (Forall implicit T P) =
-    ∀ {x : Type-Interpretation V T} → Prop-Interpretation (env ▸ x) P
 
   open import Data.Unit
 
   import Function.Inverse as Inverse
   open Inverse using (Inverse)
-
 
   Related : ∀ {S₁ S₂ : Setoid ₀ ₀} (B : Inverse S₁ S₂) → Setoid.Carrier S₁ → Setoid.Carrier S₂ → Set
   Related {S₁} B x y =
