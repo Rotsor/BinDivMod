@@ -11,7 +11,7 @@ module Data.Bin.Addition where
   open import Data.Product
   import Data.Nat.Properties
 
-  open import Data.Bin.Bijection using (bijection)
+  open import Data.Bin.Bijection using (fromℕ-bijection)
 
   module Solving where
 
@@ -26,13 +26,11 @@ module Data.Bin.Addition where
 
    open Data.Nat.Properties.SemiringSolver
 
-
-   lem : ∀ {a b c as bs b' c' r} 
-          → c' * 2 + b' ≡ c + a + b 
-          → r ≡ c' + (as + bs) 
+   lem : ∀ {a b c as bs b' c' r}
+          → c' * 2 + b' ≡ c + a + b
+          → r ≡ c' + (as + bs)
           → b' + r * 2 ≡ c + (a + as * 2 + (b + bs * 2))
-   lem {a} {b} {c} {as} {bs} {b'} {c'} {r}
-          eq1 eq2 =
+   lem {a} {b} {c} {as} {bs} {b'} {c'} {r} eq1 eq2 =
      begin
       b' + r * 2
        ≡⟨ cong (λ x → b' + x * 2) eq2 ⟩
@@ -45,10 +43,10 @@ module Data.Bin.Addition where
       c' * 2 + b' + (as + bs) * 2
        ≡⟨  +-cong eq1 refl ⟩
       c + a + b + (as + bs) * 2
-       ≡⟨ solve 5 (λ a b c as bs → 
+       ≡⟨ solve 5 (λ a b c as bs →
             c :+ a :+ b :+ (as :+ bs) :* con 2
          := c :+ (a :+ as :* con 2 :+ (b :+ bs :* con 2))
-           ) refl a b c as bs  ⟩
+           ) refl a b c as bs ⟩
       c + (a + as * 2 + (b + bs * 2))
      ∎
 
@@ -79,9 +77,9 @@ module Data.Bin.Addition where
 
   open import Data.Nat.Properties using (isCommutativeSemiring)
   open import Algebra.Structures 
-     using (module IsCommutativeSemiring; 
+     using (module IsCommutativeSemiring;
             module IsCommutativeMonoid)
-  open IsCommutativeSemiring isCommutativeSemiring 
+  open IsCommutativeSemiring isCommutativeSemiring
      using (+-isCommutativeMonoid)
   open IsCommutativeMonoid +-isCommutativeMonoid using (identity; comm) renaming (∙-cong to +-cong)
 
@@ -90,11 +88,22 @@ module Data.Bin.Addition where
   addBitLists-is-addition c (a ∷ as) [] = trans (addCarryToBitLists-is-addition c (a ∷ as)) (+-cong {bitToℕ c} refl (sym (proj₂ identity (fromDigits (a ∷ as)))))
   addBitLists-is-addition c (a ∷ as) (b ∷ bs) with addBits c a b | addBits-is-addition {c} {a} {b}
   ... | (c' , b') | abia with addBitLists c' as bs | addBitLists-is-addition c' as bs
-  ... | r | ria = Solving.lem {bitToℕ a} {bitToℕ b} {bitToℕ c} {fromDigits as} {fromDigits bs} {bitToℕ b'} {bitToℕ c'} abia ria 
+  ... | r | ria = Solving.lem {bitToℕ a} {bitToℕ b} {bitToℕ c} {fromDigits as} {fromDigits bs} {bitToℕ b'} {bitToℕ c'} abia ria
 
-  open import Data.Bin.Bijection using (fromBits-preserves-ℕ)
+  open import Function.Inverse using (Inverse)
+  open import Function.Equality
+  open import Data.Bin.BitListBijection using () renaming (toℕ⟶ to bits-to-ℕ)
+  open import Data.Bin.Bijection using (Bits-inverse-Bin)
+
+  simplify-fromBits-to-ℕ : ∀ a → toℕ (Data.Bin.fromBits a) ≡ bits-to-ℕ ⟨$⟩ a
+  simplify-fromBits-to-ℕ a = Π.cong bits-to-ℕ (Inverse.left-inverse-of Bits-inverse-Bin a )
+
   +-is-addition : ∀ a b → toℕ (Data.Bin._+_ a b) ≡ toℕ a + toℕ b
-  +-is-addition a b = trans (fromBits-preserves-ℕ (addBitLists zero (toBits a) (toBits b))) (addBitLists-is-addition zero as bs) where
+  +-is-addition a b =
+    trans
+      (simplify-fromBits-to-ℕ (addBitLists zero (toBits a) (toBits b)))
+      (addBitLists-is-addition zero as bs)
+      where
     as = toBits a
     bs = toBits b
 
@@ -102,7 +111,7 @@ module Data.Bin.Addition where
   open import Data.Nat using (ℕ)
   open import Data.Bin using (Bin; 0#)
   open import Algebra.Structures using (IsCommutativeMonoid)
-  private module Lifting = Algebra.Lifting (PropEq.setoid ℕ) (PropEq.setoid Bin) bijection
+  private module Lifting = Algebra.Lifting _ _ fromℕ-bijection
 
   is-commutativeMonoid : IsCommutativeMonoid _≡_ Data.Bin._+_ 0#
   is-commutativeMonoid = lift-isCommutativeMonoid 0 +-isCommutativeMonoid

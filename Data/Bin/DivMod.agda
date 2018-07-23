@@ -24,7 +24,7 @@ module Data.Bin.DivMod where
 
  module Properties where
 
-  open import Data.Bin.Bijection using (bijection; fromℕ)
+  open import Data.Bin.Bijection using (fromℕ-bijection; fromℕ)
 
   open import Data.Bin.Addition
   open import Data.Bin.Multiplication

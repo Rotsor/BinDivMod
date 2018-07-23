@@ -40,7 +40,7 @@ module Data.Bin.Multiplication where
   open import Data.List using (List; _∷_; [])
   open import Data.Bin.Utils
 
-  open import Data.Bin.Bijection using (toℕ-inj)
+  open import Data.Bin.Bijection using (fromℕ-bijection; toℕ-inj)
   import Relation.Binary.PropositionalEquality
   open Relation.Binary.PropositionalEquality.≡-Reasoning
 

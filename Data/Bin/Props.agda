@@ -13,10 +13,10 @@ module Data.Bin.Props where
 
   bin-+-is-comm-monoid = Data.Bin.Addition.is-commutativeMonoid
 
-  open import Data.Bin.Bijection using (bijection)
+  open import Data.Bin.Bijection using (fromℕ-bijection)
 
   import Algebra.Lifting
-  module Lifting = Algebra.Lifting (setoid ℕ) (setoid Bin) bijection
+  module Lifting = Algebra.Lifting _ _ fromℕ-bijection
 
   open import Data.Bin.Multiplication
 
@@ -40,5 +40,3 @@ module Data.Bin.Props where
    where
     *2-is-*2-bin : ∀ a → a *2 ≡ a * fromℕ 2
     *2-is-*2-bin a = *2-is-2* a ⟨ trans ⟩ *-comm (fromℕ 2) a
-
-  

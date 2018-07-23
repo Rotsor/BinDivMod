@@ -1,7 +1,7 @@
 module Data.Bin.Bijection where
 
   open import Relation.Binary.PropositionalEquality as PropEq hiding (inspect)
-  open import Function.Bijection renaming (_∘_ to _∙_)
+  open import Function.Inverse renaming (_∘_ to _∙_)
   import Function.Surjection
   open Function.Surjection using (module Surjection; module Surjective)
   open import Function.Equality using (_⟶_)
@@ -41,35 +41,14 @@ module Data.Bin.Bijection where
   open import Data.List using (_∷_; []; _++_)
   open import Data.Fin using (suc; zero) renaming (toℕ to bitToℕ)
 
-  fromBits-preserves-ℕ : ∀ x → toℕ (fromBits x) ≡ fromDigits x
-  fromBits-preserves-ℕ [] = refl
-  fromBits-preserves-ℕ (h ∷ t) with fromBits t | fromBits-preserves-ℕ t
-  ... | 0# | zo with h
-  ... | zero = PropEq.cong (λ x → x * 2) zo
-  ... | suc zero = PropEq.cong (λ x → 1 + x * 2) zo
-  ... | suc (suc ())
-  fromBits-preserves-ℕ (h ∷ t) | l 1# | zoq = PropEq.cong (λ x → bitToℕ h + x * 2) zoq
-
-  fromℕ-inj : ∀ {x y} → fromℕ x ≡ fromℕ y → x ≡ y
-  fromℕ-inj {x} {y} eq with toDigits 2 x | toDigits 2 y
-  fromℕ-inj {._} {._} eq | xDig , refl | yDig , refl = 
-      PropEq.trans
-          (PropEq.sym (fromBits-preserves-ℕ xDig))
-       (PropEq.trans
-          (PropEq.cong toℕ eq)
-          (fromBits-preserves-ℕ yDig)
-       )
-
   open import Data.Bin.BitListBijection 
-    using (≈-refl; ≈-sym; ≈-trans; ≈ᵢ-trans; ≈ᵢ-sym; _≈ᵢ_; ᵢ-to-≈; ≈-to-ᵢ; All-zero; module All-zero; All-zero-respects-equivalence)
-    renaming (setoid to bits-setoid; bijection-to-ℕ to BL-bijection-ℕ)
+    using (_≈_; All-zero; module All-zero; All-zero-respects-equivalence)
+    renaming (setoid to bits-setoid; bijection-to-ℕ to Bits-bijection-ℕ)
 
-  open _≈ᵢ_
+  open _≈_
   open All-zero
   open import Relation.Binary using (module Setoid)
   module Bits = Setoid bits-setoid
-
-  open Bits using (_≈_)
 
   open import Data.Product using (_,_; proj₂; proj₁)
   open import Function using (_∘_)
@@ -81,7 +60,7 @@ module Data.Bin.Bijection where
   fromBits-zero (All-zero.cons {t} z) with fromBits t | fromBits-zero z
   fromBits-zero (All-zero.cons z) | .0# | refl = PropEq.refl
 
-  fromBitsCong : ∀ {i j} → i ≈ᵢ j → fromBits i ≡ fromBits j
+  fromBitsCong : ∀ {i j} → i ≈ j → fromBits i ≡ fromBits j
   fromBitsCong (both-zero a-zero b-zero) =
      PropEq.trans (fromBits-zero a-zero)
       (PropEq.sym (fromBits-zero b-zero))
@@ -94,7 +73,7 @@ module Data.Bin.Bijection where
   fromBits⟶ : bits-setoid ⟶ Bin-setoid
   fromBits⟶ = record
     { _⟨$⟩_ = fromBits
-    ; cong = λ e → fromBitsCong (≈-to-ᵢ e)
+    ; cong = fromBitsCong
     }
 
   toBits⟶ : Bin-setoid ⟶ bits-setoid
@@ -113,13 +92,13 @@ module Data.Bin.Bijection where
   fromToBits-inverse ([] 1#) = refl
   fromToBits-inverse ((h ∷ t) 1#) with fromBits (toBits (t 1#)) | fromToBits-inverse (t 1#)
   ... | 0# | ()
-  ... | l 1# | koko = PropEq.cong (λ x → (h ∷ x) 1#) (#1-inj koko)
+  ... | l 1# | eq = PropEq.cong (λ x → (h ∷ x) 1#) (#1-inj eq)
 
-  qqq : ∀ {xs} → (0b ∷ []) ≈ᵢ xs → [] ≈ᵢ xs
+  qqq : ∀ {xs} → (0b ∷ []) ≈ xs → [] ≈ xs
   qqq (both-zero a-zero b-zero) = both-zero [] b-zero
   qqq (heads-match .0b .[] bt x) = both-zero [] (cons (All-zero-respects-equivalence x []))
 
-  toFromBits-inverse : ∀ a → (toBits (fromBits a)) ≈ᵢ a
+  toFromBits-inverse : ∀ a → (toBits (fromBits a)) ≈ a
   toFromBits-inverse [] = both-zero (cons []) []
   toFromBits-inverse (x ∷ xs) with fromBits xs | toFromBits-inverse xs
   toFromBits-inverse (0b ∷ xs) | 0# | w =
@@ -132,60 +111,42 @@ module Data.Bin.Bijection where
 
   fromBits-inj : ∀ {x y} → fromBits x ≡ fromBits y → x ≈ y
   fromBits-inj eq =
-    ≈-trans (≈-sym (ᵢ-to-≈ (toFromBits-inverse _)))
-    (≈-trans (Setoid.reflexive bits-setoid (cong toBits eq)) (ᵢ-to-≈ (toFromBits-inverse _)))
+    Bits.trans (Bits.sym (toFromBits-inverse _))
+    (Bits.trans (Setoid.reflexive bits-setoid (cong toBits eq)) (toFromBits-inverse _))
 
-  bijectiveFB : Bijective fromBits⟶
-  bijectiveFB = record
-    { injective = fromBits-inj
-    ; surjective = record 
-       { from = toBits⟶
-       ; right-inverse-of = fromToBits-inverse
-       }
+  open import Function.Inverse using (Inverse; _InverseOf_)
+
+  inverseFB : toBits⟶ InverseOf fromBits⟶
+  inverseFB = record
+    {
+      left-inverse-of = toFromBits-inverse;
+      right-inverse-of = fromToBits-inverse
     }
 
-  BL-bijection-Bin : Bijection bits-setoid Bin-setoid
-  BL-bijection-Bin = record
-    { bijective = bijectiveFB
+  Bits-inverse-Bin : Inverse bits-setoid Bin-setoid
+  Bits-inverse-Bin = record
+    { inverse-of = inverseFB
     }
 
-  import Level
-  ₀ = Level.zero
-  open import Relation.Binary using ( Setoid)
-  symBij : ∀ {A B : Setoid ₀ ₀} → Bijection A B → Bijection B A
-  symBij {A} {B} bij = record {
-      bijective = record 
-        { injective = Surjection.injective surjection 
-        ; surjective = record
-           { right-inverse-of = left-inverse-of
-           ; from = to }
-        }
-      ; to = from
-    } where open Bijection bij
+  fromℕ-inverse : Inverse ℕ-setoid Bin-setoid
+  fromℕ-inverse =
+    Bits-inverse-Bin
+    ∙ Function.Inverse.sym (Function.Inverse.fromBijection Bits-bijection-ℕ)
 
-  megaBijection : Bijection ℕ-setoid Bin-setoid
-  megaBijection = BL-bijection-Bin ∙ symBij BL-bijection-ℕ
+  bijection-is-reasonable1 :
+    Function.Equality._⟨$⟩_ (Inverse.to fromℕ-inverse) ≡ fromℕ
+  bijection-is-reasonable1 = PropEq.refl
 
-  toℕ-inj : ∀ {x y} → toℕ x ≡ toℕ y → x ≡ y
-  toℕ-inj {x} {y} eq = Surjection.injective (Bijection.surjection BL-bijection-Bin) (Bijective.injective (Bijection.bijective BL-bijection-ℕ) eq)
+  bijection-is-reasonable2 :
+    Function.Equality._⟨$⟩_ (Inverse.from fromℕ-inverse) ≡ toℕ
+  bijection-is-reasonable2 = PropEq.refl
 
-  fromToℕ-inverse : ∀ x → fromℕ (toℕ x) ≡ x
-  fromToℕ-inverse x = kojo where
-    kojo : fromℕ (toℕ x) ≡ x
-    kojo = Bijective.right-inverse-of (Bijection.bijective megaBijection) x
 
-  toFromℕ-inverse : ∀ x → toℕ (fromℕ x) ≡ x
-  toFromℕ-inverse x = fromℕ-inj (fromToℕ-inverse _)
+  toℕ-inverse = Function.Inverse.sym fromℕ-inverse
+  toℕ-bijection = Inverse.bijection toℕ-inverse
+  fromℕ-bijection = Inverse.bijection fromℕ-inverse
 
-  bijective : Bijective fromℕ⟶
-  bijective = record
-    { injective = fromℕ-inj
-    ; surjective = record 
-       { from = toℕ⟶
-       ; right-inverse-of = fromToℕ-inverse
-       }
-    }
-
-  bijection : Bijection ℕ-setoid Bin-setoid
-  bijection = record
-    { bijective = bijective }
+  toℕ-inj = Inverse.injective toℕ-inverse
+  fromℕ-inj = Inverse.injective fromℕ-inverse
+  fromToℕ-inverse = Inverse.left-inverse-of toℕ-inverse
+  toFromℕ-inverse = Inverse.right-inverse-of toℕ-inverse

@@ -18,16 +18,10 @@ module Data.Bin.BitListBijection where
   open import Data.Fin.Properties using () renaming (suc-injective to fin-suc-inj)
 
 
-  infix 3 _≈_ _≈ʳ_
+  infix 3 _≈_
 
   0×_ : ℕ → List Bit
   0× n = replicate n zero
-
-  data _≈_ : List Bit → List Bit → Set where
-    equiv : ∀ l n m → l ++ 0× n ≈ l ++ 0× m
-
-  data _≈ʳ_ : List Bit → List Bit → Set where
-    equiv : ∀ n m l → 0× n ++ l ≈ʳ 0× m ++ l
 
   open import Relation.Binary using (IsEquivalence; Setoid; Reflexive; Symmetric; Transitive)
   import Relation.Binary.PropositionalEquality
@@ -45,15 +39,6 @@ module Data.Bin.BitListBijection where
   []-identityʳ : ∀ l → l ++ [] ≡ l
   []-identityʳ = proj₂ (Monoid.identity (Data.List.Properties.++-monoid Bit))
 
-  ≈-sym : Symmetric _≈_
-  ≈-sym (equiv l n m) = equiv l m n
-
-  equivˡ : ∀ n l → l ++ 0× n ≈ l
-  equivˡ n l = PropEq.subst ( λ x → l ++ 0× n ≈ x) ([]-identityʳ l) (equiv l n 0)
-
-  ≈-refl : Reflexive _≈_
-  ≈-refl {x} =  PropEq.subst (λ x → x ≈ x) ([]-identityʳ x) (equiv x 0 0) 
-
   patternMatch : ∀ {A : Set} (P : A → Set) {x} → P x → ∃ λ z → P z × x ≡ z
   patternMatch _ {x = x} px = (x , (px , PropEq.refl))
 
@@ -61,9 +46,6 @@ module Data.Bin.BitListBijection where
   generalizing P case p of f = f p PropEq.refl
 
   open import Data.Sum
-
-  ≡→≈ : ∀ {x y} → x ≡ y → x ≈ y
-  ≡→≈ {x} .{x} PropEq.refl = ≈-refl {x}
 
   open import Function
 
@@ -74,43 +56,37 @@ module Data.Bin.BitListBijection where
     cons : ∀ {t} → All-zero t → All-zero (0b ∷ t)
 
   -- ᵢ for "Inductive"
-  data _≈ᵢ_ : List Bit → List Bit → Set where
-    both-zero : ∀ {a b} (a-zero : All-zero a) (b-zero : All-zero b) → a ≈ᵢ b
-    heads-match : ∀ h at bt → at ≈ᵢ bt → (h ∷ at) ≈ᵢ (h ∷ bt)
+  data _≈_ : List Bit → List Bit → Set where
+    both-zero : ∀ {a b} (a-zero : All-zero a) (b-zero : All-zero b) → a ≈ b
+    heads-match : ∀ h at bt → at ≈ bt → (h ∷ at) ≈ (h ∷ bt)
 
-  All-zero-respects-equivalence : ∀ {x y} → x ≈ᵢ y → All-zero x → All-zero y
+  All-zero-respects-equivalence : ∀ {x y} → x ≈ y → All-zero x → All-zero y
   All-zero-respects-equivalence (both-zero a-zero b-zero) z = b-zero
   All-zero-respects-equivalence (heads-match .zero at bt eq) (cons z) = cons (All-zero-respects-equivalence eq z)
 
-  ≈ᵢ-sym : ∀ {a b} → a ≈ᵢ b → b ≈ᵢ a
-  ≈ᵢ-sym (both-zero a-zero b-zero) = both-zero b-zero a-zero
-  ≈ᵢ-sym (heads-match h at bt l) = heads-match h bt at (≈ᵢ-sym l)
+  ≈-sym : ∀ {a b} → a ≈ b → b ≈ a
+  ≈-sym (both-zero a-zero b-zero) = both-zero b-zero a-zero
+  ≈-sym (heads-match h at bt l) = heads-match h bt at (≈-sym l)
 
-  ≈ᵢ-trans : ∀ {a b c} → a ≈ᵢ b → b ≈ᵢ c → a ≈ᵢ c
-  ≈ᵢ-trans (both-zero a-zero b-zero) b≈c = both-zero a-zero (All-zero-respects-equivalence b≈c b-zero) 
-  ≈ᵢ-trans a≈b (both-zero b-zero c-zero) = both-zero (All-zero-respects-equivalence (≈ᵢ-sym a≈b) b-zero) c-zero
-  ≈ᵢ-trans (heads-match h at bt r1) (heads-match .h .bt bt₁ r2) = heads-match h _ _ (≈ᵢ-trans r1 r2) 
+  ≈-trans : ∀ {a b c} → a ≈ b → b ≈ c → a ≈ c
+  ≈-trans (both-zero a-zero b-zero) b≈c = both-zero a-zero (All-zero-respects-equivalence b≈c b-zero) 
+  ≈-trans a≈b (both-zero b-zero c-zero) = both-zero (All-zero-respects-equivalence (≈-sym a≈b) b-zero) c-zero
+  ≈-trans (heads-match h at bt r1) (heads-match .h .bt bt₁ r2) = heads-match h _ _ (≈-trans r1 r2) 
 
   0×-is-all-zero : ∀ {n} → All-zero (0× n)
   0×-is-all-zero {ℕ.zero} = []
   0×-is-all-zero {ℕ.suc n} = cons 0×-is-all-zero
 
-  ≈-to-ᵢ : ∀ {a b} → a ≈ b → a ≈ᵢ b
-  ≈-to-ᵢ (equiv [] n m) = both-zero 0×-is-all-zero 0×-is-all-zero
-  ≈-to-ᵢ (equiv (x ∷ l) n m) = heads-match _ _ _ (≈-to-ᵢ (equiv l n m))
-
   az-replicate : ∀ {a} → All-zero a → (0× length a) ≡ a
   az-replicate [] = PropEq.refl
   az-replicate (cons x) = PropEq.cong (λ z → 0b ∷ z) (az-replicate x)
 
-  ᵢ-to-≈ : ∀ {a b} → a ≈ᵢ b → a ≈ b
-  ᵢ-to-≈ (both-zero {a} {b} a-zero b-zero) =
-     PropEq.subst₂ _≈_ (az-replicate a-zero) (az-replicate b-zero) (equiv [] (length a) (length b))
-  ᵢ-to-≈ (heads-match h at bt e) =
-    case ᵢ-to-≈ e of λ { (equiv l n m) → equiv (h ∷ l) n m }
+  ≈-refl : Reflexive _≈_
+  ≈-refl {[]} = both-zero [] []
+  ≈-refl {x ∷ x₁} = heads-match x x₁ x₁ ≈-refl
 
-  ≈-trans : Transitive _≈_
-  ≈-trans = λ a b → ᵢ-to-≈ (≈ᵢ-trans (≈-to-ᵢ a) (≈-to-ᵢ b))
+  ≡→≈ : ∀ {x y} → x ≡ y → x ≈ y
+  ≡→≈ {x} .{x} PropEq.refl = ≈-refl {x}
 
   isEquivalence : IsEquivalence _≈_
   isEquivalence = record
@@ -135,13 +111,14 @@ module Data.Bin.BitListBijection where
   open import Function.Bijection using (Bijection; Bijective)
   open import Function.Equality using (_⟶_)
 
-  zeroIsZero : ∀ n → fromDigits (0× n) ≡ 0
-  zeroIsZero zero = PropEq.refl
-  zeroIsZero (suc n) rewrite zeroIsZero n = PropEq.refl
+  zeroIsZero : ∀ {l} → All-zero l → toℕ l ≡ 0
+  zeroIsZero [] = PropEq.refl
+  zeroIsZero (cons q) rewrite zeroIsZero q = PropEq.refl
 
   toℕ-cong : ∀ {x y} → x ≈ y → toℕ x ≡ toℕ y
-  toℕ-cong (equiv [] a b) rewrite zeroIsZero a | zeroIsZero b = PropEq.refl
-  toℕ-cong (equiv (h ∷ t) a b) rewrite toℕ-cong (equiv t a b) = PropEq.refl
+  toℕ-cong (both-zero a-zero b-zero) =
+    PropEq.trans (zeroIsZero a-zero) (PropEq.sym (zeroIsZero b-zero))
+  toℕ-cong (heads-match h at bt q) rewrite toℕ-cong q = PropEq.refl
 
   fromℕ⟶ : ℕ-setoid ⟶ setoid
   fromℕ⟶ = record
@@ -157,8 +134,12 @@ module Data.Bin.BitListBijection where
 
 
   fromℕ-inj : ∀ {x y} → fromℕ x ≈ fromℕ y → x ≡ y
-  fromℕ-inj {x} {y} eq with toDigits 2 x | toDigits 2 y
-  fromℕ-inj .{_} .{_} eq | xDig , PropEq.refl | yDig , PropEq.refl = toℕ-cong eq
+  fromℕ-inj {x} {y} eq =
+    PropEq.trans
+      (PropEq.sym (proj₂ (toDigits 2 x)))
+      (PropEq.trans
+        (toℕ-cong eq)
+        (proj₂ (toDigits 2 y)))
 
   open import Data.Nat.DivMod
 
@@ -220,7 +201,7 @@ module Data.Bin.BitListBijection where
     case digit-inj x zero (toℕ xs) 0 eq of
       λ { (PropEq.refl , snd) → cons (toℕ-inj-zero xs snd) } 
 
-  toℕ-inj2 : ∀ {x y} → toℕ x ≡ toℕ y → x ≈ᵢ y
+  toℕ-inj2 : ∀ {x y} → toℕ x ≡ toℕ y → x ≈ y
   toℕ-inj2 {[]} {ys} eq = both-zero [] (toℕ-inj-zero ys (PropEq.sym eq))
   toℕ-inj2 {xs} {[]} eq = both-zero (toℕ-inj-zero xs eq) []
   toℕ-inj2 {x ∷ xs} {y ∷ ys} eq =
@@ -229,7 +210,7 @@ module Data.Bin.BitListBijection where
 
   bijective : Bijective toℕ⟶
   bijective = record
-    { injective = λ e → ᵢ-to-≈ (toℕ-inj2 e)
+    { injective = toℕ-inj2
     ; surjective = record 
        { from = fromℕ⟶
        ; right-inverse-of = proj₂ ∘ toDigits 2
