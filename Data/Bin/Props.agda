@@ -40,3 +40,16 @@ module Data.Bin.Props where
    where
     *2-is-*2-bin : ∀ a → a *2 ≡ a * fromℕ 2
     *2-is-*2-bin a = *2-is-2* a ⟨ trans ⟩ *-comm (fromℕ 2) a
+
+  open import Function
+  open import Data.Empty
+  1+≢0 : ∀ l → toℕ (l 1#) ≢ 0
+  1+≢0 l eq = case Data.Bin.Bijection.toℕ-inj {l 1#} {0#} eq of (λ ())
+
+  z<nzℕ : ∀ {n} → n ≢ 0 → Data.Nat._<_ 0 n
+  z<nzℕ {Data.Bin.0b} neq = ⊥-elim (neq refl)
+  z<nzℕ {Data.Bin.Bijection.1+ n} neq = Data.Nat.s≤s Data.Nat.z≤n
+  
+  z<nz : ∀ l → 0# < l 1#
+  z<nz l = Data.Bin.less (z<nzℕ (1+≢0 l))
+

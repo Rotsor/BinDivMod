@@ -27,10 +27,33 @@ module Data.Bin.Minus where
 
   open import Data.Sum
   open import Data.Unit
-
+  import Data.Nat.Properties
+  
   data Greater (a b : Bin) : Set where
    greater : ∀ (diff : Bin⁺) → b + diff 1# ≡ a → Greater a b
-  
+
+  open import Data.Empty using (⊥; ⊥-elim)
+
+  import Data.Bin.Addition
+  open import Data.Bin.Props
+
+  greater-to-< : ∀ a b → Greater a b → b < a
+  greater-to-< ._ b (greater diff refl) =
+    let
+      zz = Data.Nat.Properties.+-mono-≤
+        {1} {toℕ (diff 1#)} {toℕ b} {toℕ b}
+        (case z<nz diff of λ { (Data.Bin.less p) → p })
+        Data.Nat.Properties.≤-refl
+    in
+     Data.Bin.less (Data.Nat.Properties.≤-trans zz (
+       Data.Nat.Properties.≤-reflexive (
+         trans
+           (sym (Data.Nat.Properties.+-comm (toℕ b) _))
+           (sym (Data.Bin.Addition.+-is-addition b (diff 1#)))
+           )))
+
+  open import Data.Product
+
   data Difference (a b : Bin) : Set where
     positive : Greater a b → Difference a b
     negative : Greater b a → Difference a b
@@ -257,13 +280,16 @@ module Data.Bin.Minus where
   succpred-id (suc zero) xs = refl
   succpred-id (suc (suc ())) xs
 
+  -- CR: difference-to-∸ : ∀ {a b} → Difference a b → Bin
+  -- difference-to-bin 
+
   _-_ : Bin → Bin → Bin
   x - y with x -? y
   ... | positive (greater d _) = d 1#
   ... | equal _ = 0#
   ... | negative _ = 0#
 
-  open import Data.Bin.Bijection using (toℕ-inj; fromToℕ-inverse; fromℕ-inj)
+  open import Data.Bin.Bijection using (fromℕ-bijection; toℕ-inj; fromToℕ-inverse; fromℕ-inj)
 
   open import Data.Bin.Addition using (+-is-addition)
 

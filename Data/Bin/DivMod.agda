@@ -5,14 +5,14 @@ module Data.Bin.DivMod where
  import Data.Bin
  import Data.Nat
  import Relation.Binary.PropositionalEquality
- import Data.Digit
+ import Data.Digit hiding (0b; 1b)
  import Data.List
  import Algebra
  import Algebra.Structures
  import Data.Bin.NatHelpers
  
 
- open Data.Bin using (Bin; toℕ; toBits; fromBits; _1#; 0#)
+ open Data.Bin using (Bin; toℕ; toBits; fromBits; _1#; 0#; 2+_; 0b; 1b)
  module PropEq = Relation.Binary.PropositionalEquality
 
 
@@ -22,11 +22,12 @@ module Data.Bin.DivMod where
 
  open import Data.Bin.Utils
 
+ open import Data.Bin.Bijection using (fromℕ-bijection; fromℕ; toℕ-inj; toFromℕ-inverse)
+
+ import Data.Bin.Addition
+
  module Properties where
 
-  open import Data.Bin.Bijection using (fromℕ-bijection; fromℕ)
-
-  open import Data.Bin.Addition
   open import Data.Bin.Multiplication
   open Data.Bin using () renaming (_+_ to _B+_; _*_ to _B*_)
   open Algebra.Structures using (IsCommutativeMonoid; module IsCommutativeSemiring)
@@ -37,7 +38,7 @@ module Data.Bin.DivMod where
 
  module Everything where
 
-  open Data.Bin using (_1#; 0#; Bin; _+_; _*2; _*2+1; fromℕ; toℕ; ⌊_/2⌋; _*_; less)
+  open Data.Bin using (_1#; 0#; Bin; _+_; _*2; _*2+1; toℕ; ⌊_/2⌋; _*_; less)
   open import Data.Bin.Properties using (<-strictTotalOrder)
   open import Function
   open Data.Product
@@ -71,7 +72,7 @@ module Data.Bin.DivMod where
   open import Data.List using (List; _++_; [_]; [])
   open import Data.Empty
 
-  open import Data.Bin.Bijection using (fromToBits-inverse)
+  import Data.Bin.Bijection
 
   import Data.Bin.Multiplication
 
@@ -115,17 +116,7 @@ module Data.Bin.DivMod where
   divMod2-lem {(suc (suc ()) ∷ xs) 1#}
 
   import Relation.Binary.EqReasoning
-
-
-  z<nz : ∀ l → 0# < l 1#
-  z<nz l with (toℕ (l 1#)) | inspect toℕ (l 1#)
-  ... | zero | [ ≡ ] with Data.Bin.Bijection.toℕ-inj {l 1#} {0#} ≡
-  ... | ()
-  z<nz l | suc n | [ eq ] = Data.Bin.less (subst (λ x → Data.Nat._≤_ 1 x) (sym eq) (Data.Nat.s≤s Data.Nat.z≤n))
-
-  1+≢0 : ∀ l → toℕ (l 1#) ≢ 0
-  1+≢0 l eq with Data.Bin.Bijection.toℕ-inj {l 1#} {0#} eq
-  ... | ()
+  open import Data.Bin.Props
 
   helper' : ∀ l → ⌊ l 1# /2⌋ < l 1#
   helper' [] = Data.Bin.less (Data.Nat.s≤s Data.Nat.z≤n)
@@ -147,7 +138,6 @@ module Data.Bin.DivMod where
   ... | tri≈ _ a≡b _ = ⊥-elim (a≰b (inj₁ (sym a≡b))) 
   ... | tri> _ _ a>b = ⊥-elim (a≰b (inj₂ a>b)) 
 
-  import Data.Bin.Addition
   *2-gives-space : ∀ {x y z} → (x < y) → z < fromℕ 2 → x *2 + z < y *2
   *2-gives-space {x} {y} {z} (less x<y) (less z<2) = less (finalize (Data.Bin.NatHelpers.*2-gives-space x<y z<2)) where
     open Data.Nat using () renaming (_*_ to _ℕ*_; _+_ to _ℕ+_; _<_ to _ℕ<_)
@@ -184,78 +174,110 @@ module Data.Bin.DivMod where
 
   open import Data.Bin.Addition using (+-is-addition)
 
-  +-elim₂ : ∀ {x y z} → x + z < y + z → x < y
-  +-elim₂ {x} {y} {z} (less lt) rewrite +-is-addition x z | +-is-addition y z = less (Data.Bin.NatHelpers.+-elim₂ {toℕ x} {toℕ y} {toℕ z} lt)
+  open import Data.Bin.Minus using (_-?_; positive; negative; equal; Greater; greater)
 
-  magic : ∀ {r d} → ¬ r < d → r < d + d → r - d < d
-  magic {r} {d} r≮d r<d+d = +-elim₂ {z = d} (<-pres₁ (sym (-+-elim r≮d)) r<d+d)
+  lemma1 : ∀ (f d q : Bin) → (d + f) + q * d ≡ f + (fromℕ 1 + q) * d
+  lemma1 f d q =
+    let open ≡-Reasoning in
+    begin
+      (d + f) + q * d
+        ≡⟨ +-cong₁ {c = q * d} (+-comm d f) ⟩
+      (f + d) + q * d
+        ≡⟨ +-assoc f d (q * d) ⟩
+      f + (d + q * d)
+        ≡⟨ +-cong₂ {c = f} (+-cong₁ {c = q * d} (*-identityˡ {d})) ⟩
+      f + ((fromℕ 1 * d) + q * d)
+        ≡⟨ +-cong₂ {c = f} (PropEq.sym (*-distrib {fromℕ 1} {q} {d}))  ⟩
+      f + (fromℕ 1 + q) * d
+    ∎
 
-  data Irr (A : Set) : Set where
-   irr : A → Irr A
+  lemma2 : ∀ d q → d + q * d ≡ d + 0# + q * d
+  lemma2 d q =  cong₂ _+_ (sym (proj₂ +-identity d)) (refl {x = q * d})
+  
+  open import Algebra.FunctionProperties
+    using (LeftCancellative; RightCancellative; Cancellative)
+
+  +-cancelˡ-< : LeftCancellative Data.Nat._<_ Data.Nat._+_
+  +-cancelˡ-< c {y} {z} le =
+    Data.Nat.Properties.+-cancelˡ-≤ c
+      (subst₂ Data.Nat._≤_
+        (PropEq.sym (Data.Nat.Properties.+-suc c y))
+        (PropEq.refl {x = (Data.Nat._+_ c z)}) le)
+
+  +-<-left-cancellative : LeftCancellative _<_ _+_
+  +-<-left-cancellative c {a} {b} (less le) = less (+-cancelˡ-< (toℕ c) brr) where
+     brr : toℕ c Data.Nat.+ toℕ a Data.Nat.< toℕ c Data.Nat.+ toℕ b
+     brr = (subst₂ Data.Nat._<_
+         (Data.Bin.Addition.+-is-addition c a)
+         (Data.Bin.Addition.+-is-addition c b) le)
+
+  +-elim₂ : RightCancellative _<_ _+_
+  +-elim₂ {z} x y (less lt) rewrite +-is-addition x z | +-is-addition y z = less (Data.Bin.NatHelpers.+-elim₂ {toℕ x} {toℕ y} {toℕ z} lt)
+
+  fixup-divmod :
+    ∀ a d q r
+    → a ≡ r + q * d
+    → r < d + d
+    → DivMod' a d
+  fixup-divmod a d q r eq not-too-big =
+    case r -? d of λ {
+      (positive (greater diff PropEq.refl)) →
+        result
+          (fromℕ 1 + q)
+          (diff 1# , +-<-left-cancellative d not-too-big)
+          (PropEq.trans eq (lemma1 (diff 1#) d q));
+      (negative x) → result q (r , Data.Bin.Minus.greater-to-< _ _ x) eq ;
+      (equal PropEq.refl) →
+        result
+          (fromℕ 1 + q)
+          (0# , 
+            (+-<-left-cancellative
+              d
+              (subst (λ z → z < d + d) (PropEq.sym (proj₂ +-identity _)) not-too-big )) )
+          (PropEq.trans eq (PropEq.trans (lemma2 d q) (lemma1 0# d q)))
+       }
+
+  lemma3 : ∀ r q d bit → (r + q * d) *2 + bit ≡ (r *2 + bit) + q *2 * d
+  lemma3 r q d bit =
+    let open ≡-Reasoning in
+    begin
+      (r + q * d) *2 + bit
+        ≡⟨ +-cong₁ {c = bit}
+           (begin
+             (r + q * d) *2
+               ≡⟨ *2-distrib r (q * d) ⟩
+             r *2 + (q * d) *2
+               ≡⟨ +-comm (r *2) ((q * d) *2) ⟩
+             (q * d) *2 + r *2
+           ∎) ⟩
+      ((q * d) *2 + r *2) + bit
+        ≡⟨ +-assoc ((q * d) *2) (r *2) (bit) ⟩
+      (q * d) *2 + (r *2 + bit)
+        ≡⟨ +-comm ((q * d) *2) (r *2 + bit) ⟩
+      (r *2 + bit) + (q * d) *2
+        ≡⟨ +-cong₂ {c = r *2 + bit} (*-*2-assoc {q} {d})  ⟩
+      (r *2 + bit) + q *2 * d
+    ∎
+
+  dm-step :
+    ∀ a d q (r : BinFin d) → a ≡ toBin r + q * d →
+    ∀ w (bit : BinFin (fromℕ 2))
+    → w ≡ (a *2 + proj₁ bit)
+    → DivMod' w d
+  dm-step ._ d q (r' , r'<d) refl ._ (bit , bit<2) refl =
+    fixup-divmod
+      _ d (q *2) (r' *2 + bit)
+      (lemma3 r' q d bit)
+      (<-pres₂ x*2≡x+x (*2-gives-space {r'} {d} {bit} r'<d (bit<2)))
 
   dmRec : (d : Bin) → {≢0 : False (d ≟ fromℕ 0)} → (a : Bin) → ((a' : Bin) → (a' < a) → DivMod' a' d) → DivMod' a d
-  dmRec d {≢0} a rec with a <? d
-  ... | yes a<d = result (0#) (a , a<d) (sym (+-identityʳ _))
-  ... | no ¬a<d with rec ⌊ a /2⌋ (helper ≢0 ¬a<d)
-  ... | (result q (r' , r'<d) a/2≡r'+q*d) with ((r' *2) + a %2) | inspect (λ a → ((r' *2) + a %2)) a
-  ... | r | [ r-definition ] with r <? d | irr a≡r+q*2*d where
-     open ≡-Reasoning
-     a≡r+q*2*d : a ≡ r + q *2 * d
-     a≡r+q*2*d = 
-       begin
-         a
-           ≡⟨ divMod2-lem ⟩
-         ⌊ a /2⌋ *2 + a %2
-           ≡⟨ +-cong₁ {c = a %2}
-              (begin
-                ⌊ a /2⌋ *2
-                  ≡⟨ *2-cong a/2≡r'+q*d ⟩
-                (r' + q * d) *2
-                  ≡⟨ *2-distrib r' (q * d) ⟩
-                r' *2 + (q * d) *2
-                  ≡⟨ +-comm (r' *2) ((q * d) *2) ⟩
-                (q * d) *2 + r' *2
-              ∎) ⟩
-         ((q * d) *2 + r' *2) + a %2
-           ≡⟨ +-assoc ((q * d) *2) (r' *2) (a %2) ⟩
-         (q * d) *2 + (r' *2 + a %2)
-           ≡⟨ +-comm ((q * d) *2) (r' *2 + a %2) ⟩
-         (r' *2 + a %2) + (q * d) *2
-           ≡⟨ +-cong₂ {c = r' *2 + a %2} (*-*2-assoc {q} {d})  ⟩
-         (r' *2 + a %2) + q *2 * d
-           ≡⟨ +-cong₁ {c = q *2 * d} r-definition ⟩
-         r + q *2 * d
-       ∎
-  ... | yes r<d | (irr a≡r+q*2*d) = result (q *2) (r , r<d) a≡r+q*2*d
-  ... | no ¬r<d | (irr a≡r+q*2*d) = result (fromℕ 1 + (q *2)) (r - d , r-d<d) correct
-    where
-      r<2d : r < d + d
-      r<2d = <-pres₁ r-definition (<-pres₂ {c = (r' *2) + a %2} x*2≡x+x (*2-gives-space r'<d (%2<2 {a})))
-      r-d<d : r - d < d
-      r-d<d = magic ¬r<d r<2d
-      oldProof : a ≡ r + q *2 * d
-      oldProof = a≡r+q*2*d
-      open ≡-Reasoning
-      correct : a ≡ (r - d) + (fromℕ 1 + q *2) * d
-      correct = sym $
-        begin
-          (r - d) + (fromℕ 1 + q *2) * d
-            ≡⟨ +-cong₂ {(fromℕ 1 + q *2) * d} {d + q *2 * d} {r - d} 
-                 (begin
-                  (fromℕ 1 + q *2) * d
-                   ≡⟨ *-distrib {fromℕ 1} {q *2} {d} ⟩
-                  fromℕ 1 * d + q *2 * d
-                   ≡⟨ refl ⟩
-                  d + q *2 * d
-                 ∎ ) ⟩
-          (r - d) + (d + q *2 * d)
-            ≡⟨ sym (+-assoc (r - d) d (q *2 * d)) ⟩
-          (r - d + d) + q *2 * d
-            ≡⟨ +-cong₁ {r - d + d} {r} {q *2 * d} (-+-elim ¬r<d)  ⟩
-          r + q *2 * d
-            ≡⟨ sym oldProof ⟩
-          a
-        ∎
+  dmRec d {≢0} a rec =
+    case a <? d of λ {
+      (yes a<d) → result (0#) (a , a<d) (sym (+-identityʳ _)) ;
+      (no ¬a<d) →
+        case rec ⌊ a /2⌋ (helper ≢0 ¬a<d) of
+          λ { (result q r eq) →
+            dm-step ⌊ a /2⌋ d q r eq a (a %2 , %2<2) divMod2-lem } }
 
   import Data.Bin.Rec
 
