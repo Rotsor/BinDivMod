@@ -1,4 +1,3 @@
-{-# OPTIONS --termination-depth=10 #-}
 module Data.Bin.BitListBijection where
 
 --
